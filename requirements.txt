@@ -1,0 +1,7 @@
+pandas>=2.1
+numpy>=1.26
+scikit-learn>=1.4
+neo4j>=5.18
+python-dotenv>=1.0
+matplotlib>=3.8
+networkx>=3.2
