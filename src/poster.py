@@ -40,13 +40,14 @@ RECOMMENDATIONS = [
 ]
 
 APPROACH = (
-    "We sample ~3,000 Spotify tracks stratified by track_genre, force-including "
-    "every song by The Strokes and Regina Spektor. After z-scoring nine audio "
+    "The pipeline samples ~3,000 Spotify tracks stratified by track_genre, "
+    "force-including every song by The Strokes and Regina Spektor. After "
+    "z-scoring nine audio "
     "features (danceability, energy, loudness, speechiness, acousticness, "
     "instrumentalness, liveness, valence, tempo), each song is connected to its "
     "K = 10 nearest neighbours by Euclidean distance, yielding a sparse "
     "SIMILAR_TO graph. Songs, artists, and genres are modelled as distinct nodes. "
-    "To recommend, we run personalized PageRank (Neo4j GDS) over SIMILAR_TO, "
+    "Recommendation generation runs personalized PageRank (Neo4j GDS) over SIMILAR_TO, "
     "seeded with the user's liked songs and weighted by score = 1 / (1 + distance). "
     "The top-ranked tracks are returned after excluding artists the user already "
     "likes. The approach generalises to any user; Prof. Rachlin is just one seed set."
