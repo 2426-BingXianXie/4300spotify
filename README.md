@@ -12,20 +12,6 @@ recommendations.
 
 See [graph_music_rec.pdf](graph_music_rec.pdf) for the assignment spec.
 
-## Approach (one paragraph)
-
-We sample ~3,000 Spotify tracks stratified by `track_genre`, force-including
-every song by The Strokes and Regina Spektor. After z-scoring nine audio
-features (`danceability, energy, loudness, speechiness, acousticness,
-instrumentalness, liveness, valence, tempo`) we connect each song to its
-**K nearest neighbors** by Euclidean distance, producing a sparse
-`SIMILAR_TO` graph. Songs, artists, and genres are modeled as distinct
-nodes. To recommend, we run **personalized PageRank** (Neo4j GDS) over
-`SIMILAR_TO`, seeded with the user's liked songs and weighted by
-`score = 1 / (1 + distance)`. We then return the top-ranked tracks after
-removing artists the user already likes. The same pipeline generalizes
-to any user by swapping the seed set.
-
 ## Similarity rule
 
 Two songs `u` and `v` are connected by a `SIMILAR_TO` edge **iff `v` is
@@ -86,13 +72,6 @@ python -m src.recommend      # prints top-5 recommendations + metrics
 table of recommended tracks with their artists, album, genres, and PPR
 score.
 
-## Tuning (Phase 5 of plan.md)
-
-- Defaults: `SEED=4300`, `SAMPLE_SIZE=3000`, `K=10` (`src/config.py`).
-- If density is too high (> 0.05) or the graph feels overly hubby:
-  lower `K` to 5–8 and re-run from Phase 2.
-- If the graph is disconnected (PageRank flattens): raise `K` or drop
-  the densest similarity edges below a min-score floor.
 
 ## Results (latest run, SEED=4300, SAMPLE_SIZE=3000, K=10)
 
@@ -118,14 +97,3 @@ Neither The Strokes nor Regina Spektor appear in the result set; this is
 enforced in `cypher/40_recommend.cypher` (`WHERE NONE(name IN artists WHERE
 name IN $liked_artists)`) and re-validated in `src/recommend.py::_validate_exclusion`.
 
-## Poster checklist (from the PDF)
-
-- [ ] Graph visualization showing Strokes songs connected to the 5 recs
-      (export from Neo4j Browser / Bloom).
-- [ ] One-paragraph approach description — see "Approach" above.
-- [ ] Total graph size: N, E, density — run `cypher/99_metrics.cypher`.
-- [ ] Five recommendations (Artist, Album, Title) — from `recommend.py`.
-- [ ] Similarity rule — see "Similarity rule" above.
-- [ ] Post the 5 recommendations to the shared Google Sheet on Canvas.
-- [ ] Submit slide as **PDF** (not PPTX).
-# 4300spotify
