@@ -90,3 +90,9 @@ dist/
 *.sqlite3
 *.db
 node_modules/
+
+# -------- Markdown docs (agent/scaffold files, not part of the submission) --------
+# Agent-facing docs (AGENTS.md, plan.md, cursor.md, codex.md) are NOT pushed.
+# README.md IS pushed — it documents the project for human readers/graders.
+*.md
+!README.md
