@@ -30,13 +30,19 @@ log = logging.getLogger(__name__)
 
 
 def _liked_mask(df: pd.DataFrame) -> pd.Series:
-    """Boolean mask for rows where any liked artist appears in ``artists``."""
+    """True for rows whose ``artists`` field contains a ``LIKED_ARTISTS`` name.
+
+    Returns: Boolean Series aligned with ``df`` index.
+    """
     pattern = "|".join(re.escape(a) for a in LIKED_ARTISTS)
     return df["artists"].fillna("").str.contains(pattern, case=False, regex=True)
 
 
 def load_raw() -> pd.DataFrame:
-    """Load the raw Kaggle CSV, dropping rows missing any audio feature."""
+    """Load ``spotify.csv`` and drop rows with missing features or identifiers.
+
+    Returns: Cleaned DataFrame (all ``FEATURE_COLS`` and key columns present).
+    """
     df = pd.read_csv(RAW_CSV, index_col=0)
     before = len(df)
     df = df.dropna(subset=list(FEATURE_COLS) + ["track_id", "artists", "track_name"])
@@ -45,7 +51,10 @@ def load_raw() -> pd.DataFrame:
 
 
 def stratified_sample(df: pd.DataFrame, sample_size: int, seed: int) -> pd.DataFrame:
-    """Sample roughly ``sample_size`` rows distributed across ``track_genre``."""
+    """Draw an equal per-genre random sample totaling about ``sample_size`` rows.
+
+    Returns: Concatenated sample (may exceed ``sample_size`` before dedupe).
+    """
     genres = df["track_genre"].dropna().unique()
     per_genre = max(1, math.ceil(sample_size / len(genres)))
     parts = []
@@ -63,7 +72,11 @@ def stratified_sample(df: pd.DataFrame, sample_size: int, seed: int) -> pd.DataF
 
 
 def force_include_liked(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
-    """Concatenate ``df`` with every raw row matching a liked artist."""
+    """Append every Strokes/Spektor row from ``raw`` so seeds are never dropped.
+
+    Returns: ``df`` concatenated with all liked-artist rows from ``raw``.
+    Raises: ``RuntimeError`` if no liked-artist rows exist in ``raw``.
+    """
     liked = raw[_liked_mask(raw)]
     if liked.empty:
         raise RuntimeError(
@@ -78,7 +91,10 @@ def force_include_liked(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
 
 
 def dedupe(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove duplicate tracks (same track_name + artists)."""
+    """Keep one row per ``(track_name, artists)`` pair.
+
+    Returns: De-duplicated DataFrame (first occurrence kept).
+    """
     before = len(df)
     out = df.drop_duplicates(subset=["track_name", "artists"], keep="first").reset_index(drop=True)
     log.info("deduped %s -> %s rows", before, len(out))
@@ -86,7 +102,10 @@ def dedupe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def standardize_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Add z-scored ``feat_<col>`` columns for every audio feature."""
+    """Z-score ``FEATURE_COLS`` in-place and add ``feat_<col>`` columns.
+
+    Returns: Same ``df`` with standardized feature columns attached.
+    """
     scaler = StandardScaler()
     arr = scaler.fit_transform(df[list(FEATURE_COLS)].astype(float).to_numpy())
     for i, col in enumerate(FEATURE_COLS):
@@ -95,7 +114,10 @@ def standardize_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def assert_liked_present(df: pd.DataFrame) -> None:
-    """Fail loudly if any liked artist is missing from the sample."""
+    """Verify every ``LIKED_ARTISTS`` name appears in the sample.
+
+    Raises: ``AssertionError`` if any liked artist is missing.
+    """
     artists_lower = df["artists"].fillna("").str.lower()
     missing = [a for a in LIKED_ARTISTS if not artists_lower.str.contains(a.lower()).any()]
     if missing:
@@ -103,7 +125,11 @@ def assert_liked_present(df: pd.DataFrame) -> None:
 
 
 def build_sample() -> pd.DataFrame:
-    """Run the end-to-end sampling pipeline and write ``data/sample.csv``."""
+    """Run stratified sampling, force-include seeds, standardize, and write CSV.
+
+    Returns: Final sample DataFrame.
+    Side effects: Writes ``data/sample.csv``.
+    """
     raw = load_raw()
     sample = stratified_sample(raw, SAMPLE_SIZE, SEED)
     sample = force_include_liked(sample, raw)
@@ -128,6 +154,7 @@ def build_sample() -> pd.DataFrame:
 
 
 def main() -> None:
+    """CLI entry point: configure logging and run ``build_sample()``."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

@@ -39,7 +39,11 @@ STANDARDIZED_PREFIX: Final[str] = "feat_"
 
 
 def get_driver() -> Driver:
-    """Return a Neo4j driver using credentials from .env."""
+    """Create a Neo4j driver from ``NEO4J_URI``, ``NEO4J_USER``, and ``NEO4J_PASSWORD``.
+
+    Returns: Connected ``Driver`` instance (caller must ``close()`` it).
+    Side effects: Loads ``ROOT/.env`` via ``python-dotenv``.
+    """
     load_dotenv(ROOT / ".env")
     uri = os.environ["NEO4J_URI"]
     user = os.environ["NEO4J_USER"]
@@ -48,11 +52,18 @@ def get_driver() -> Driver:
 
 
 def get_database() -> str:
-    """Return the configured Neo4j database name (default: 'neo4j')."""
+    """Return the Neo4j database name from ``NEO4J_DATABASE`` (default ``neo4j``).
+
+    Returns: Database name string for ``session(database=...)``.
+    Side effects: Loads ``ROOT/.env`` via ``python-dotenv``.
+    """
     load_dotenv(ROOT / ".env")
     return os.environ.get("NEO4J_DATABASE", "neo4j")
 
 
 def ensure_data_dir() -> None:
-    """Create the data/ directory if it doesn't exist."""
+    """Ensure ``DATA_DIR`` exists before writing pipeline CSVs.
+
+    Side effects: Creates ``data/`` (and parents) if missing.
+    """
     DATA_DIR.mkdir(parents=True, exist_ok=True)

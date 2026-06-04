@@ -98,6 +98,10 @@ FONT_PATHS = [
 
 
 def _poster_font() -> FontProperties:
+    """Pick a system font that supports CJK labels on the graph.
+
+    Returns: ``FontProperties`` for matplotlib text (falls back to DejaVu Sans).
+    """
     for path in FONT_PATHS:
         if path.exists():
             font_manager.fontManager.addfont(str(path))
@@ -106,7 +110,12 @@ def _poster_font() -> FontProperties:
 
 
 def fetch_subgraph(max_hops: int = 3) -> tuple[list[dict], list[dict], int]:
-    """Fetch a readable Strokes-to-recommendations subgraph from Neo4j."""
+    """Query Neo4j for paths from Strokes seeds to all five recommendation songs.
+
+    Returns: ``(nodes, edges, hops_used)`` where each node has ``id``, ``name``,
+    ``is_strokes``, ``is_rec``; edges have ``src``, ``dst``, ``score``.
+    Raises: ``RuntimeError`` if no hop limit up to ``max_hops`` connects every rec.
+    """
     driver = get_driver()
     try:
         with driver.session(database=get_database()) as session:
@@ -131,6 +140,10 @@ def fetch_subgraph(max_hops: int = 3) -> tuple[list[dict], list[dict], int]:
 
 
 def build_graph(nodes: list[dict], edges: list[dict]) -> nx.Graph:
+    """Convert Neo4j subgraph records into an undirected NetworkX graph.
+
+    Returns: Graph with node attrs ``label``, ``is_strokes``, ``is_rec`` and edge ``score``.
+    """
     graph = nx.Graph()
     for node in nodes:
         graph.add_node(
@@ -146,12 +159,20 @@ def build_graph(nodes: list[dict], edges: list[dict]) -> nx.Graph:
 
 
 def _short_label(label: str, width: int = 17) -> str:
+    """Wrap recommendation song titles for on-graph labels; hide others.
+
+    Returns: Wrapped label string for rec nodes, or ``""`` for non-rec nodes.
+    """
     if label in RECS:
         return "\n".join(textwrap.wrap(label, width=width, break_long_words=False))
     return ""
 
 
 def draw_poster(graph: nx.Graph, hops: int, output_path: Path = OUTPUT_PDF) -> None:
+    """Render the one-page landscape poster PDF with graph, text, and table.
+
+    Side effects: Writes ``output_path`` (default ``poster.pdf``) via matplotlib.
+    """
     font = _poster_font()
     font_family = font.get_name()
     plt.rcParams.update(
@@ -339,6 +360,7 @@ def draw_poster(graph: nx.Graph, hops: int, output_path: Path = OUTPUT_PDF) -> N
 
 
 def main() -> None:
+    """CLI entry point: fetch subgraph, build NetworkX graph, write ``poster.pdf``."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("fontTools").setLevel(logging.WARNING)
     nodes, edges, hops = fetch_subgraph()

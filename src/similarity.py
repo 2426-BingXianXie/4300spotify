@@ -26,7 +26,11 @@ log = logging.getLogger(__name__)
 
 
 def feature_matrix(df: pd.DataFrame) -> np.ndarray:
-    """Return the standardized feature matrix in a stable column order."""
+    """Stack standardized ``feat_*`` columns into a float32 matrix for kNN.
+
+    Returns: ``(n_songs, len(FEATURE_COLS))`` numpy array.
+    Raises: ``RuntimeError`` if any expected ``feat_*`` column is missing.
+    """
     cols = [f"{STANDARDIZED_PREFIX}{c}" for c in FEATURE_COLS]
     missing = [c for c in cols if c not in df.columns]
     if missing:
@@ -35,9 +39,11 @@ def feature_matrix(df: pd.DataFrame) -> np.ndarray:
 
 
 def knn_edges(df: pd.DataFrame, k: int) -> pd.DataFrame:
-    """Compute kNN edges and symmetrize them.
+    """Build symmetric kNN ``SIMILAR_TO`` edges with Euclidean distance and score.
 
-    Returns a DataFrame with one row per *unique* unordered pair.
+    Returns: DataFrame with columns ``src_track_id``, ``dst_track_id``,
+    ``distance``, ``score`` (score = 1 / (1 + distance)); one row per directed edge.
+    Raises: ``RuntimeError`` if ``len(df) <= k``.
     """
     if len(df) <= k:
         raise RuntimeError(f"Sample size {len(df)} must exceed k={k}.")
@@ -81,7 +87,11 @@ def knn_edges(df: pd.DataFrame, k: int) -> pd.DataFrame:
 
 
 def build_similarity() -> pd.DataFrame:
-    """Run the kNN pipeline and write ``data/similarity.csv``."""
+    """Read ``data/sample.csv``, compute kNN edges, and write similarity CSV.
+
+    Returns: Edge DataFrame written to disk.
+    Side effects: Writes ``data/similarity.csv``.
+    """
     df = pd.read_csv(SAMPLE_CSV)
     edges = knn_edges(df, K)
     ensure_data_dir()
@@ -101,6 +111,7 @@ def build_similarity() -> pd.DataFrame:
 
 
 def main() -> None:
+    """CLI entry point: configure logging and run ``build_similarity()``."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
