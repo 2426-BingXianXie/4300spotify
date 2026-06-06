@@ -54,10 +54,11 @@ APPROACH = (
 )
 
 METRICS = (
-    "Nodes (Song): 3,045\n"
-    "Artists / Genres: 3,252 / 114\n"
-    "SIMILAR_TO edges: 42,384 directed\n"
-    "Unique undirected pairs: 21,192\n"
+    "Song nodes: 3,045\n"
+    "Artist nodes: 3,252\n"
+    "Genre nodes: 114\n"
+    "Edges (SIMILAR_TO): 42,384 directed\n"
+    "Edges (unique undirected): 21,192\n"
     "Density: (2 x 21,192) / (3,045 x 3,044) ~= 0.00457"
 )
 
